@@ -65,8 +65,8 @@ static void positionEstimateInternal(state_t* estimate, float asl, float dt, str
                      (1.0 - state->estAlpha) * asl +
                      state->velocityFactor * state->velocityZ * dt;
 
-  estimate->position.x = 0.0;
-  estimate->position.y = 0.0;
+  /*estimate->position.x = 0.0;
+  estimate->position.y = 0.0;*/
   estimate->position.z = state->estimatedZ;
 }
 

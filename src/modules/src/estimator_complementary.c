@@ -33,9 +33,15 @@ void stateEstimator(state_t *state, const sensorData_t *sensorData, const uint32
                        ATTITUDE_UPDATE_DT);
     sensfusion6GetEulerRPY(&state->attitude.roll, &state->attitude.pitch, &state->attitude.yaw);
 
-    state->acc.z = sensfusion6GetAccZWithoutGravity(sensorData->acc.x,
+    sensfusion6GetAccInWorldFrame(sensorData->acc.x, sensorData->acc.y, sensorData->acc.z,
+                                  &state->acc.x, &state->acc.y, &state->acc.z);
+    sensorfusion6DeadReckoning(state->acc.x, state->acc.y, state->acc.z,
+                              &state->velocity.x, &state->velocity.y, &state->velocity.z,
+                              &state->position.x, &state->position.y, &state->position.z, ATTITUDE_UPDATE_DT);
+
+    /*state->acc.z = sensfusion6GetAccZWithoutGravity(sensorData->acc.x,
                                                     sensorData->acc.y,
-                                                    sensorData->acc.z);
+                                                    sensorData->acc.z);*/   // sensfusion6GetAccInWorldFrame() already takes care of this :)
 
     positionUpdateVelocity(state->acc.z, ATTITUDE_UPDATE_DT);
   }

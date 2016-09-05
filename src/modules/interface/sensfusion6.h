@@ -35,4 +35,7 @@ void sensfusion6GetEulerRPY(float* roll, float* pitch, float* yaw);
 float sensfusion6GetAccZWithoutGravity(const float ax, const float ay, const float az);
 float sensfusion6GetInvThrustCompensationForTilt();
 
+void sensfusion6GetAccInWorldFrame(const float ax, const float ay, const float az, float* worldAx, float* worldAy, float* worldAz);
+void sensorfusion6DeadReckoning(const float ax, const float ay, const float az, float* vx, float* vy, float* vz, float* px, float* py, float* pz, const float dt);
+
 #endif /* SENSORFUSION6_H_ */

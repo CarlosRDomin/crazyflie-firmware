@@ -27,7 +27,10 @@
 
 #include "sensfusion6.h"
 #include "param.h"
+#include "log.h"
+#include "num.h"    // For deadband()
 
+#define GRAVITY_MAGNITUDE (9.81f) // we use the magnitude such that the sign/direction is explicit in calculations
 #define M_PI_F ((float) M_PI)
 
 //#define MADWICK_QUATERNION_IMU
@@ -55,6 +58,7 @@ float q2 = 0.0f;
 float q3 = 0.0f;  // quaternion of sensor frame relative to auxiliary frame
 
 static float gravX, gravY, gravZ; // Unit vector in the estimated gravity direction
+static uint8_t resetDRxy = 0;
 
 // The acc in Z for static position (g)
 // Set on first update, assuming we are in a static position since the sensors were just calibrates.
@@ -266,6 +270,41 @@ void sensfusion6GetEulerRPY(float* roll, float* pitch, float* yaw)
   *roll = atan2f(gy, gz) * 180 / M_PI_F;
 }
 
+void sensfusion6GetAccInWorldFrame(const float ax, const float ay, const float az, float* worldAx, float* worldAy, float* worldAz)
+{
+  // a_measured = a_body + g -> a_body = a_measured - g. Since we want to measure a_body in world coordinates, we need to convert a_measured
+  // from body to world coordinates (using our orientation quaternion). Note that g=(0,0,baseZacc) in world coordinates.
+
+  // Math from http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/ (quaternion to matrix, first matrix/table)
+  *worldAx = (1 - 2*q2*q2 - 2*q3*q3)*ax + (2*q1*q2 - 2*q0*q3)*ay + (2*q1*q3 + 2*q0*q2)*az - 0;
+  *worldAy = (2*q1*q2 + 2*q0*q3)*ax + (1 - 2*q1*q1 - 2*q3*q3)*ay + (2*q2*q3 - 2*q0*q1)*az - 0;
+  *worldAz = (2*q1*q3 - 2*q0*q2)*ax + (2*q2*q3 + 2*q0*q1)*ay + (1 - 2*q1*q1 - 2*q2*q2)*az - baseZacc;  // Note that this equals to: gravX*ax + gravY*ay + gravZ*z - baseZacc
+}
+
+void sensorfusion6DeadReckoning(const float ax, const float ay, const float az, float* vx, float* vy, float* vz, float* px, float* py, float* pz, const float dt)
+{
+    float deadband_margin = 0.04;   // Use same values as the ones used in position_estimator_altitude
+    float velAlpha = 0.995;
+    static float ax_old = 0, ay_old = 0, az_old = 0;    // For better integration, replace a*dt by ((a_old+a_new)/2)*dt -> We need to keep track of a_old and v_old
+    float vx_old = *vx, vy_old = *vy, vz_old = *vz;
+
+    // Acceleration is in Gs -> Convert to m/s^2. Also apply a deadband like in position_estimator_altitude. And multiply by velAlpha so v converges to 0 in the long run.
+    *vx += 0.5 * (ax_old + deadband(ax, deadband_margin)) * GRAVITY_MAGNITUDE * dt; *vx *= velAlpha;
+    *vy += 0.5 * (ay_old + deadband(ay, deadband_margin)) * GRAVITY_MAGNITUDE * dt; *vy *= velAlpha;
+    *vz += 0.5 * (az_old + deadband(az, deadband_margin)) * GRAVITY_MAGNITUDE * dt; *vz *= velAlpha;
+
+    *px += 0.5 * (vx_old + *vx) * dt;
+    *py += 0.5 * (vy_old + *vy) * dt;
+    *pz += 0.5 * (vz_old + *vz) * dt;
+
+    ax_old = ax; ay_old = ay; az_old = az;  // Store values for next iteration
+
+    if (resetDRxy) {    // Since DeadReckoning error grows over time, allow to reset velocity and position through a param
+        resetDRxy = 0;
+        *vx = 0; *vy = 0; *vz = 0; *px = 0; *py = 0; *pz = 0;
+    }
+}
+
 float sensfusion6GetAccZWithoutGravity(const float ax, const float ay, const float az)
 {
   return sensfusion6GetAccZ(ax, ay, az) - baseZacc;
@@ -316,3 +355,13 @@ PARAM_ADD(PARAM_FLOAT, ki, &twoKi)
 #endif
 PARAM_ADD(PARAM_FLOAT, baseZacc, &baseZacc)
 PARAM_GROUP_STOP(sensorfusion6)
+
+PARAM_GROUP_START(deadReckoning)
+PARAM_ADD(PARAM_UINT8, resetDRxy, &resetDRxy)
+PARAM_GROUP_STOP(deadReckoning)
+
+LOG_GROUP_START(gravity)
+LOG_ADD(LOG_FLOAT, gravX, &gravX)
+LOG_ADD(LOG_FLOAT, gravY, &gravY)
+LOG_ADD(LOG_FLOAT, gravZ, &gravZ)
+LOG_GROUP_STOP(gravity)
