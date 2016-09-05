@@ -81,7 +81,11 @@
 #define configUSE_16_BIT_TICKS		0
 #define configIDLE_SHOULD_YIELD		0
 #define configUSE_CO_ROUTINES 		0
-#define configCHECK_FOR_STACK_OVERFLOW      1
+#ifdef DEBUG
+  #define configCHECK_FOR_STACK_OVERFLOW      1
+#else
+  #define configCHECK_FOR_STACK_OVERFLOW      0
+#endif
 #define configUSE_TIMERS          1
 #define configTIMER_TASK_PRIORITY 1
 #define configTIMER_QUEUE_LENGTH  20
@@ -96,9 +100,9 @@ to exclude the API function. */
 
 #define INCLUDE_vTaskPrioritySet		1
 #define INCLUDE_uxTaskPriorityGet		1
-#define INCLUDE_vTaskDelete				0
-#define INCLUDE_vTaskCleanUpResources	0
-#define INCLUDE_vTaskSuspend			0
+#define INCLUDE_vTaskDelete				1
+#define INCLUDE_vTaskCleanUpResources	1
+#define INCLUDE_vTaskSuspend			1
 #define INCLUDE_vTaskDelayUntil			1
 #define INCLUDE_vTaskDelay				1
 #define INCLUDE_uxTaskGetStackHighWaterMark 1
