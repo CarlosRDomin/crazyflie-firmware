@@ -75,7 +75,7 @@
 #define IMU_NBR_OF_BIAS_SAMPLES  1024
 
 // Variance threshold to take zero bias for gyro
-#define GYRO_VARIANCE_BASE        2000
+#define GYRO_VARIANCE_BASE        5000
 #define GYRO_VARIANCE_THRESHOLD_X (GYRO_VARIANCE_BASE)
 #define GYRO_VARIANCE_THRESHOLD_Y (GYRO_VARIANCE_BASE)
 #define GYRO_VARIANCE_THRESHOLD_Z (GYRO_VARIANCE_BASE)
@@ -389,11 +389,13 @@ void imu9Read(Axis3f* gyroOut, Axis3f* accOut, Axis3f* magOut)
 
   if (isMagPresent)
   {
-    ak8963GetHeading(&mag.x, &mag.y, &mag.z);
-    ak8963GetOverflowStatus();
-    magOut->x = (float)mag.x / MAG_GAUSS_PER_LSB;
-    magOut->y = (float)mag.y / MAG_GAUSS_PER_LSB;
-    magOut->z = (float)mag.z / MAG_GAUSS_PER_LSB;
+    if (ak8963GetDataReady() == true) {
+      ak8963GetHeading(&mag.x, &mag.y, &mag.z);
+      ak8963GetOverflowStatus();
+      magOut->x = (float)mag.x / MAG_GAUSS_PER_LSB;
+      magOut->y = (float)mag.y / MAG_GAUSS_PER_LSB;
+      magOut->z = (float)mag.z / MAG_GAUSS_PER_LSB;
+    }
   }
   else
   {
