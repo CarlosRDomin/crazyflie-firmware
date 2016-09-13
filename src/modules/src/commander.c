@@ -32,6 +32,7 @@
 #include "crtp.h"
 #include "configblock.h"
 #include "param.h"
+#include "log.h"
 #include "num.h"
 
 #define MIN_THRUST  1000
@@ -71,6 +72,8 @@ static CommanderCache crtpCache;
 static CommanderCache extrxCache;
 static CommanderCache* activeCache;
 
+static uint32_t commanderStabilizeTimeout = (uint32_t) (COMMANDER_WDT_TIMEOUT_STABILIZE/((float)configTICK_RATE_HZ)*1000.0);    // Undo what M2T(X) will do, to convert to msec
+static uint32_t commanderShutdownTimeout = (uint32_t) (COMMANDER_WDT_TIMEOUT_SHUTDOWN/((float)configTICK_RATE_HZ)*1000.0);
 static uint32_t lastUpdate;
 static bool isInactive;
 static bool thrustLocked;
@@ -148,16 +151,16 @@ static void commanderCacheSelectorUpdate(void)
 {
   uint32_t tickNow = xTaskGetTickCount();
 
-  /* Check inputs and prioritize. Extrx higher then crtp */
-  if ((tickNow - extrxCache.timestamp) < COMMANDER_WDT_TIMEOUT_STABILIZE) {
-    activeCache = &extrxCache;
-  } else if ((tickNow - crtpCache.timestamp) < COMMANDER_WDT_TIMEOUT_STABILIZE) {
+  /* Check inputs and prioritize. CHANGED BY Carlitos: crtp higher than extrx */
+  if ((tickNow - crtpCache.timestamp) < M2T(commanderStabilizeTimeout)) {
     activeCache = &crtpCache;
-  } else if ((tickNow - extrxCache.timestamp) < COMMANDER_WDT_TIMEOUT_SHUTDOWN) {
+  } else if ((tickNow - extrxCache.timestamp) < M2T(commanderStabilizeTimeout)) {
     activeCache = &extrxCache;
+  } else if ((tickNow - crtpCache.timestamp) < M2T(commanderShutdownTimeout)) {
+    activeCache = &crtpCache;
     commanderLevelRPY();
-  } else if ((tickNow - crtpCache.timestamp) < COMMANDER_WDT_TIMEOUT_SHUTDOWN) {
-    activeCache = &crtpCache;
+  } else if ((tickNow - extrxCache.timestamp) < M2T(commanderShutdownTimeout)) {
+    activeCache = &extrxCache;
     commanderLevelRPY();
   } else {
     activeCache = &crtpCache;
@@ -381,4 +384,6 @@ PARAM_ADD(PARAM_UINT8, yawRst, &carefreeResetFront)
 PARAM_ADD(PARAM_UINT8, stabModeRoll, &stabilizationModeRoll)
 PARAM_ADD(PARAM_UINT8, stabModePitch, &stabilizationModePitch)
 PARAM_ADD(PARAM_UINT8, stabModeYaw, &stabilizationModeYaw)
+PARAM_ADD(PARAM_UINT32, timeoutStab, &commanderStabilizeTimeout)
+PARAM_ADD(PARAM_UINT32, timeoutShut, &commanderShutdownTimeout)
 PARAM_GROUP_STOP(flightmode)

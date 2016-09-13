@@ -278,7 +278,7 @@ CFLAGS += -MD -MP -MF $(BIN)/dep/$(@).d -MQ $(@)
 CFLAGS += -ffunction-sections -fdata-sections
 
 # Fail on warnings
-CFLAGS += -Werror
+# CFLAGS += -Werror
 
 ASFLAGS = $(PROCESSOR) $(INCLUDES)
 LDFLAGS = --specs=nano.specs $(PROCESSOR) -Wl,-Map=$(PROG).map,--cref,--gc-sections,--undefined=uxTopUsedPriority

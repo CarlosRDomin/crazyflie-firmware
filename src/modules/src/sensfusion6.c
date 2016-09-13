@@ -289,9 +289,13 @@ void sensorfusion6DeadReckoning(const float ax, const float ay, const float az, 
     float vx_old = *vx, vy_old = *vy, vz_old = *vz;
 
     // Acceleration is in Gs -> Convert to m/s^2. Also apply a deadband like in position_estimator_altitude. And multiply by velAlpha so v converges to 0 in the long run.
-    *vx += 0.5 * (ax_old + deadband(ax, deadband_margin)) * GRAVITY_MAGNITUDE * dt; *vx *= velAlpha;
+    /* *vx += 0.5 * (ax_old + deadband(ax, deadband_margin)) * GRAVITY_MAGNITUDE * dt; *vx *= velAlpha;
     *vy += 0.5 * (ay_old + deadband(ay, deadband_margin)) * GRAVITY_MAGNITUDE * dt; *vy *= velAlpha;
-    *vz += 0.5 * (az_old + deadband(az, deadband_margin)) * GRAVITY_MAGNITUDE * dt; *vz *= velAlpha;
+    *vz += 0.5 * (az_old + deadband(az, deadband_margin)) * GRAVITY_MAGNITUDE * dt; *vz *= velAlpha;*/
+
+    *vx += 0.5 * (ax_old + ax) * GRAVITY_MAGNITUDE * dt;
+    *vy += 0.5 * (ay_old + ay) * GRAVITY_MAGNITUDE * dt;
+    *vz += 0.5 * (az_old + az) * GRAVITY_MAGNITUDE * dt;
 
     *px += 0.5 * (vx_old + *vx) * dt;
     *py += 0.5 * (vy_old + *vy) * dt;

@@ -138,8 +138,8 @@ void positionController(float* thrust, attitude_t *attitude, const state_t *stat
   // Z
   float newThrust = runPid(state->position.z, &this.pidZ, setpoint->mode.z, setpoint->position.z, setpoint->velocity.z, DT);
   *thrust = newThrust + this.thrustBase;
-  if (*thrust > 45000) {
-    *thrust = 45000;
+  if (*thrust > 50000) {
+    *thrust = 50000;
   }
 }
 
