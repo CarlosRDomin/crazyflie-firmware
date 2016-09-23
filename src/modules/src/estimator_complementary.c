@@ -11,6 +11,8 @@
 #define POS_UPDATE_RATE RATE_100_HZ
 #define POS_UPDATE_DT 1.0/POS_UPDATE_RATE
 
+static uint32_t last_worker_update_n = 0;
+
 void stateEstimatorInit(void)
 {
   sensfusion6Init();
@@ -49,10 +51,14 @@ void stateEstimator(state_t *state, const sensorData_t *sensorData, const uint32
   if (RATE_DO_EXECUTE(POS_UPDATE_RATE, tick)) {
     // If position sensor data is preset, pass it throught
     // FIXME: The position sensor shall be used as an input of the estimator
-    if (sensorData->position.timestamp) {
+    if (sensorData->vel_worker.timestamp != last_worker_update_n) {
+        state->position = sensorData->pos_worker;
+        state->velocity = sensorData->vel_worker;
+        last_worker_update_n = sensorData->vel_worker.timestamp;
+    } else if (sensorData->position.timestamp) {
       state->position = sensorData->position;
     } else {
-      positionEstimate(state, sensorData->baro.asl, POS_UPDATE_DT);
+    //   positionEstimate(state, sensorData->baro.asl, POS_UPDATE_DT);
     }
   }
 }

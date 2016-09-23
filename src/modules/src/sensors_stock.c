@@ -35,6 +35,9 @@
 #include "param.h"
 
 static point_t position;
+static point_t pos_worker;
+static velocity_t vel_worker;
+static uint32_t last_worker_update_n = 0;
 
 #define IMU_RATE RATE_500_HZ
 #define BARO_RATE RATE_100_HZ
@@ -70,8 +73,13 @@ void sensorsAcquire(sensorData_t *sensors, const uint32_t tick)
                  &sensors->baro.asl);
 #endif
     // Experimental: receive the position from parameters
-    if (position.timestamp) {
+    if (position.timestamp) {   // LPS - Part of original firmware
       sensors->position = position;
+    }
+    if (vel_worker.timestamp != last_worker_update_n) { // Spotter sending update to worker
+      sensors->pos_worker = pos_worker;
+      sensors->vel_worker = vel_worker;
+      last_worker_update_n = vel_worker.timestamp;
     }
   }
 }
@@ -88,4 +96,15 @@ PARAM_ADD(PARAM_UINT32, t, &position.timestamp)
 PARAM_ADD(PARAM_FLOAT, x, &position.x)
 PARAM_ADD(PARAM_FLOAT, y, &position.y)
 PARAM_ADD(PARAM_FLOAT, z, &position.z)
-PARAM_GROUP_STOP(sensorfusion6)
+PARAM_GROUP_STOP(lps)
+
+PARAM_GROUP_START(worker)
+PARAM_ADD(PARAM_UINT32, t, &pos_worker.timestamp)
+PARAM_ADD(PARAM_UINT32, n, &vel_worker.timestamp)
+PARAM_ADD(PARAM_FLOAT, pX, &pos_worker.x)
+PARAM_ADD(PARAM_FLOAT, pY, &pos_worker.y)
+PARAM_ADD(PARAM_FLOAT, pZ, &pos_worker.z)
+PARAM_ADD(PARAM_FLOAT, vX, &vel_worker.x)
+PARAM_ADD(PARAM_FLOAT, vY, &vel_worker.y)
+PARAM_ADD(PARAM_FLOAT, vZ, &vel_worker.z)
+PARAM_GROUP_STOP(worker)

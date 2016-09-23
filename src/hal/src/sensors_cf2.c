@@ -118,6 +118,7 @@ static bool    gyroBiasFound = false;
 static float accScaleSum = 0;
 static float accScale = 1;
 
+static float aslOffset = 0;
 static bool isBarometerPresent = false;
 static bool isMagnetometerPresent = false;
 
@@ -244,7 +245,7 @@ void processBarometerMeasurements(const uint8_t *buffer)
 
   sensors.baro.pressure = (float) rawPressure / LPS25H_LSB_PER_MBAR;
   sensors.baro.temperature = LPS25H_TEMP_OFFSET + ((float) rawTemp / LPS25H_LSB_PER_CELSIUS);
-  sensors.baro.asl = lps25hPressureToAltitude(&sensors.baro.pressure);
+  sensors.baro.asl = lps25hPressureToAltitude(&sensors.baro.pressure) - aslOffset;
 }
 
 void processMagnetometerMeasurements(const uint8_t *buffer)
@@ -848,3 +849,7 @@ PARAM_ADD(PARAM_UINT8 | PARAM_RONLY, MPU6500, &isMpu6500TestPassed)
 PARAM_ADD(PARAM_UINT8 | PARAM_RONLY, HMC5883L, &isAK8963TestPassed)
 PARAM_ADD(PARAM_UINT8 | PARAM_RONLY, MS5611, &isLPS25HTestPassed) // TODO: Rename MS5611 to LPS25H. Client needs to be updated at the same time.
 PARAM_GROUP_STOP(imu_tests)
+
+PARAM_GROUP_START(baro)
+PARAM_ADD(PARAM_FLOAT, aslOffset, &aslOffset)
+PARAM_GROUP_STOP(baro)

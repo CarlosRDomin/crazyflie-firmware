@@ -29,6 +29,8 @@
 #include "param.h"
 #include "log.h"
 #include "num.h"    // For deadband()
+#include "console.h"// For consolePrintf()
+#include "crtp.h"   // For receiving DeadReckoning pos and vel updates over radio
 
 #define GRAVITY_MAGNITUDE (9.81f) // we use the magnitude such that the sign/direction is explicit in calculations
 #define M_PI_F ((float) M_PI)
@@ -58,7 +60,29 @@ float q2 = 0.0f;
 float q3 = 0.0f;  // quaternion of sensor frame relative to auxiliary frame
 
 static float gravX, gravY, gravZ; // Unit vector in the estimated gravity direction
-static uint8_t resetDRxy = 0;
+static uint8_t resetDR = 0;
+static bool updateDRpos = false, updateDRvel = false;
+static float deadbandVel = 0.04, deadbandAcc = 0.04;
+static float velAlphaDR = 0.999;
+
+/**
+ * CRTP DeadReckoning data struct
+ */
+struct DeadReckoningCrtpValues
+{
+  float x;
+  float y;
+  float z;
+  uint32_t timestamp;
+} __attribute__((packed));
+
+struct DeadReckoningExternalUpdate
+{
+  struct DeadReckoningCrtpValues values;
+  bool needToUpdate;  // Once we update the DR pos/vel with these values, we'll set this flag to False so we don't keep resetting
+};
+
+static struct DeadReckoningExternalUpdate externalDRposUpdate = {.needToUpdate=false}, externalDRvelUpdate = {.needToUpdate=false};
 
 // The acc in Z for static position (g)
 // Set on first update, assuming we are in a static position since the sensors were just calibrates.
@@ -72,6 +96,7 @@ static bool isCalibrated = false;
 static void sensfusion6UpdateQImpl(float gx, float gy, float gz, float ax, float ay, float az, float dt);
 static float sensfusion6GetAccZ(const float ax, const float ay, const float az);
 static void estimatedGravityDirection(float* gx, float* gy, float* gz);
+static void deadReckoningCrtpCB(CRTPPacket* pk);
 
 // TODO: Make math util file
 static float invSqrt(float x);
@@ -81,11 +106,15 @@ void sensfusion6Init()
   if(isInit)
     return;
 
+  crtpInit();   // In case it hasn't been init'd yet (if it has already been init'd it will return)
+  crtpRegisterPortCB(CRTP_PORT_DEADRECK, deadReckoningCrtpCB);
+
   isInit = true;
 }
 
 bool sensfusion6Test(void)
 {
+  crtpTest();
   return isInit;
 }
 
@@ -283,30 +312,65 @@ void sensfusion6GetAccInWorldFrame(const float ax, const float ay, const float a
 
 void sensorfusion6DeadReckoning(const float ax, const float ay, const float az, float* vx, float* vy, float* vz, float* px, float* py, float* pz, const float dt)
 {
-    float deadband_margin = 0.04;   // Use same values as the ones used in position_estimator_altitude
-    float velAlpha = 0.995;
-    static float ax_old = 0, ay_old = 0, az_old = 0;    // For better integration, replace a*dt by ((a_old+a_new)/2)*dt -> We need to keep track of a_old and v_old
-    float vx_old = *vx, vy_old = *vy, vz_old = *vz;
+  static uint8_t resetDR_old = 1; // DR pos and vel will be reset whenever resetDR doesn't match its previous value. Initially, let's force a reset by setting it to !=resetDR (which starts as 0)
+  static float ax_old = 0, ay_old = 0, az_old = 0;    // For better integration, replace a*dt by ((a_old+a_new)/2)*dt -> We need to keep track of a_old and v_old
+  float vx_old = *vx, vy_old = *vy, vz_old = *vz;
 
-    // Acceleration is in Gs -> Convert to m/s^2. Also apply a deadband like in position_estimator_altitude. And multiply by velAlpha so v converges to 0 in the long run.
-    /* *vx += 0.5 * (ax_old + deadband(ax, deadband_margin)) * GRAVITY_MAGNITUDE * dt; *vx *= velAlpha;
-    *vy += 0.5 * (ay_old + deadband(ay, deadband_margin)) * GRAVITY_MAGNITUDE * dt; *vy *= velAlpha;
-    *vz += 0.5 * (az_old + deadband(az, deadband_margin)) * GRAVITY_MAGNITUDE * dt; *vz *= velAlpha;*/
+  // Acceleration is in Gs -> Convert to m/s^2. Also apply a deadband like in position_estimator_altitude. And multiply by velAlpha so v converges to 0 in the long run.
+  /* *vx += 0.5 * (ax_old + deadband(ax, deadband_margin)) * GRAVITY_MAGNITUDE * dt; *vx *= velAlpha;
+  *vy += 0.5 * (ay_old + deadband(ay, deadband_margin)) * GRAVITY_MAGNITUDE * dt; *vy *= velAlpha;
+  *vz += 0.5 * (az_old + deadband(az, deadband_margin)) * GRAVITY_MAGNITUDE * dt; *vz *= velAlpha;*/
 
-    *vx += 0.5 * (ax_old + ax) * GRAVITY_MAGNITUDE * dt;
-    *vy += 0.5 * (ay_old + ay) * GRAVITY_MAGNITUDE * dt;
-    *vz += 0.5 * (az_old + az) * GRAVITY_MAGNITUDE * dt;
+  if (updateDRvel) {
+    *vx += 0.5 * (ax_old + deadband(ax, deadbandAcc)) * GRAVITY_MAGNITUDE * dt;
+    *vy += 0.5 * (ay_old + deadband(ay, deadbandAcc)) * GRAVITY_MAGNITUDE * dt;
+    *vz += 0.5 * (az_old + deadband(az, deadbandAcc)) * GRAVITY_MAGNITUDE * dt;
+    *vx *= velAlphaDR; *vy *= velAlphaDR; *vz *= velAlphaDR;
+  }
+  if (updateDRpos) {
+    *px += 0.5 * (vx_old + deadband(*vx, deadbandVel)) * dt;
+    *py += 0.5 * (vy_old + deadband(*vy, deadbandVel)) * dt;
+    *pz += 0.5 * (vz_old + deadband(*vz, deadbandVel)) * dt;
+  }
 
-    *px += 0.5 * (vx_old + *vx) * dt;
-    *py += 0.5 * (vy_old + *vy) * dt;
-    *pz += 0.5 * (vz_old + *vz) * dt;
+  ax_old = ax; ay_old = ay; az_old = az;  // Store values for next iteration
 
-    ax_old = ax; ay_old = ay; az_old = az;  // Store values for next iteration
+  if (resetDR != resetDR_old) {    // Since DeadReckoning error grows over time, allow to reset velocity and position through a param
+    resetDR_old = resetDR;
+    *vx = 0; *vy = 0; *vz = 0; *px = 0; *py = 0; *pz = 0;
+  }
 
-    if (resetDRxy) {    // Since DeadReckoning error grows over time, allow to reset velocity and position through a param
-        resetDRxy = 0;
-        *vx = 0; *vy = 0; *vz = 0; *px = 0; *py = 0; *pz = 0;
-    }
+  if (externalDRposUpdate.needToUpdate) {
+    externalDRposUpdate.needToUpdate = false;
+    *px = externalDRposUpdate.values.x;
+    *py = externalDRposUpdate.values.y;
+    *pz = externalDRposUpdate.values.z;
+  }
+  if (externalDRvelUpdate.needToUpdate) {
+    externalDRvelUpdate.needToUpdate = false;
+    *vx = externalDRvelUpdate.values.x;
+    *vy = externalDRvelUpdate.values.y;
+    *vz = externalDRvelUpdate.values.z;
+  }
+}
+
+static void deadReckoningCrtpCB(CRTPPacket* pk)
+{
+  struct DeadReckoningExternalUpdate* update;
+  switch (pk->channel) {
+    case 0:
+      update = &externalDRposUpdate;
+      break;
+    case 1:
+      update = &externalDRvelUpdate;
+      break;
+    default:
+      consolePrintf("Incorrect DR-CRTP ch. (%d)", pk->channel);
+      return;
+  }
+  update->values = *((struct DeadReckoningCrtpValues*)pk->data);
+  // update->values.timestamp = xTaskGetTickCount();
+  update->needToUpdate = true;
 }
 
 float sensfusion6GetAccZWithoutGravity(const float ax, const float ay, const float az)
@@ -361,7 +425,12 @@ PARAM_ADD(PARAM_FLOAT, baseZacc, &baseZacc)
 PARAM_GROUP_STOP(sensorfusion6)
 
 PARAM_GROUP_START(deadReckoning)
-PARAM_ADD(PARAM_UINT8, resetDRxy, &resetDRxy)
+PARAM_ADD(PARAM_UINT8, resetDR, &resetDR)
+PARAM_ADD(PARAM_UINT8, updateDRpos, &updateDRpos)
+PARAM_ADD(PARAM_UINT8, updateDRvel, &updateDRvel)
+PARAM_ADD(PARAM_FLOAT, velAlpha, &velAlphaDR)
+PARAM_ADD(PARAM_FLOAT, deadbandVel, &deadbandVel)
+PARAM_ADD(PARAM_FLOAT, deadbandAcc, &deadbandAcc)
 PARAM_GROUP_STOP(deadReckoning)
 
 LOG_GROUP_START(gravity)

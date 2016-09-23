@@ -124,6 +124,8 @@ typedef struct sensorData_s {
   Axis3f mag;
   baro_t baro;
   point_t position;
+  point_t pos_worker;
+  velocity_t vel_worker;
 } sensorData_t;
 
 typedef struct state_s {
