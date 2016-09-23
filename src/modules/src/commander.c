@@ -31,9 +31,12 @@
 #include "commander.h"
 #include "crtp.h"
 #include "configblock.h"
+#include "log.h"
 #include "param.h"
 #include "log.h"
 #include "num.h"
+#include "debug.h"
+#include "ext_position.h"
 
 #define MIN_THRUST  1000
 #define MAX_THRUST  60000
@@ -47,6 +50,7 @@ typedef struct
   bool activeSide;
   uint32_t timestamp; // FreeRTOS ticks
 } CommanderCache;
+
 
 /**
  * Stabilization modes for Roll, Pitch, Yaw.
@@ -259,7 +263,8 @@ void commanderInit(void)
   }
 
   crtpInit();
-  crtpRegisterPortCB(CRTP_PORT_COMMANDER, commanderCrtpCB);
+  crtpRegisterPortCB(CRTP_PORT_SETPOINT, commanderCrtpCB);
+  extPositionInit(); // Set callback for CRTP_PORT_POSITION
 
   activeCache = &crtpCache;
   lastUpdate = xTaskGetTickCount();
