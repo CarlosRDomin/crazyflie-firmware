@@ -178,13 +178,8 @@ void positionController(float* thrust, attitude_t *attitude, const state_t *stat
     newThrust = runPid(state->velocity.z, &this.pidVelZ, modeAbs, newThrust, 0, DT);
   }
   *thrust = newThrust + this.thrustBase;
-<<<<<<< HEAD
-  if (*thrust > 50000) {
-    *thrust = 50000;
-=======
   if (*thrust > 55000) {
     *thrust = 55000;
->>>>>>> bitcraze/master
   }
 }
 
