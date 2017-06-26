@@ -244,6 +244,10 @@ LOG_ADD(LOG_FLOAT, VXp, &this.pidVX.pid.outP)
 LOG_ADD(LOG_FLOAT, VXi, &this.pidVX.pid.outI)
 LOG_ADD(LOG_FLOAT, VXd, &this.pidVX.pid.outD)
 
+LOG_ADD(LOG_FLOAT, VYp, &this.pidVY.pid.outP)
+LOG_ADD(LOG_FLOAT, VYi, &this.pidVY.pid.outI)
+LOG_ADD(LOG_FLOAT, VYd, &this.pidVY.pid.outD)
+
 LOG_ADD(LOG_FLOAT, VZp, &this.pidVZ.pid.outP)
 LOG_ADD(LOG_FLOAT, VZi, &this.pidVZ.pid.outI)
 LOG_ADD(LOG_FLOAT, VZd, &this.pidVZ.pid.outD)

@@ -95,9 +95,9 @@ static void positionEstimateInternal(state_t* estimate, const sensorData_t* sens
   }
 
 
-  estimate->position.x = 0.0f;
+  /*estimate->position.x = 0.0f;
   estimate->position.y = 0.0f;
-  estimate->position.z = state->estimatedZ;
+  estimate->position.z = state->estimatedZ;*/
   estimate->velocity.z = (state->estimatedZ - prev_estimatedZ) / dt;
   state->estimatedVZ = estimate->velocity.z;
   prev_estimatedZ = state->estimatedZ;

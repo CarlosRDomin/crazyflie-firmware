@@ -162,7 +162,7 @@ static inline bool stateEstimatorHasTOFPacket(tofMeasurement_t *tof) {
 #define CRAZYFLIE_WEIGHT_grams (27.0f)
 
 //thrust is thrust mapped for 65536 <==> 60 GRAMS!
-#define CONTROL_TO_ACC (GRAVITY_MAGNITUDE*60.0f/CRAZYFLIE_WEIGHT_grams/65536.0f)
+#define CONTROL_TO_ACC (GRAVITY_MAGNITUDE*60.0f/quadWeight/65536.0f)
 
 #define SPEED_OF_LIGHT (299792458)
 
@@ -263,6 +263,7 @@ static uint32_t thrustAccumulatorCount;
 static uint32_t gyroAccumulatorCount;
 static uint32_t baroAccumulatorCount;
 static bool quadIsFlying = false;
+static float quadWeight = 27.0;
 static int32_t lastTDOAUpdate;
 static float stateSkew;
 static float varSkew;
@@ -1315,6 +1316,7 @@ LOG_GROUP_STOP(kalman)
 PARAM_GROUP_START(kalman)
   PARAM_ADD(PARAM_UINT8, resetEstimation, &resetEstimation)
   PARAM_ADD(PARAM_UINT8, quadIsFlying, &quadIsFlying)
+  PARAM_ADD(PARAM_UINT8, quadWeight, &quadWeight)
   PARAM_ADD(PARAM_FLOAT, pNAcc_xy, &procNoiseAcc_xy)
   PARAM_ADD(PARAM_FLOAT, pNAcc_z, &procNoiseAcc_z)
   PARAM_ADD(PARAM_FLOAT, pNVel, &procNoiseVel)

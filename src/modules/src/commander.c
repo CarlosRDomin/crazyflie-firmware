@@ -28,6 +28,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
+#include "param.h"
 
 #include "commander.h"
 #include "crtp_commander.h"
@@ -37,6 +38,8 @@ const static setpoint_t nullSetpoint;
 const static int priorityDisable = COMMANDER_PRIORITY_DISABLE;
 
 static uint32_t lastUpdate;
+static uint32_t commanderStabilizeTimeout = (uint32_t) (COMMANDER_WDT_TIMEOUT_STABILIZE/(configTICK_RATE_HZ/1000.0));    // Undo what M2T(X) will do, to convert to msec
+static uint32_t commanderShutdownTimeout = (uint32_t) (COMMANDER_WDT_TIMEOUT_SHUTDOWN/(configTICK_RATE_HZ/1000.0));
 
 QueueHandle_t setpointQueue;
 QueueHandle_t priorityQueue;
@@ -77,9 +80,9 @@ void commanderGetSetpoint(setpoint_t *setpoint, const state_t *state)
   lastUpdate = setpoint->timestamp;
   uint32_t currentTime = xTaskGetTickCount();
 
-  if ((currentTime - setpoint->timestamp) > COMMANDER_WDT_TIMEOUT_SHUTDOWN) {
+  if ((currentTime - setpoint->timestamp) > M2T(commanderShutdownTimeout)) {
     memcpy(setpoint, &nullSetpoint, sizeof(nullSetpoint));
-  } else if ((currentTime - setpoint->timestamp) > COMMANDER_WDT_TIMEOUT_STABILIZE) {
+  } else if ((currentTime - setpoint->timestamp) > M2T(commanderStabilizeTimeout)) {
     xQueueOverwrite(priorityQueue, &priorityDisable);
     // Leveling ...
     setpoint->mode.x = modeDisable;
@@ -110,3 +113,10 @@ int commanderGetActivePriority(void)
   xQueuePeek(priorityQueue, &priority, 0);
   return priority;
 }
+
+
+// Params for timeouts
+PARAM_GROUP_START(timeout)
+PARAM_ADD(PARAM_UINT32, timeoutStab, &commanderStabilizeTimeout)
+PARAM_ADD(PARAM_UINT32, timeoutShut, &commanderShutdownTimeout)
+PARAM_GROUP_STOP(timeout)

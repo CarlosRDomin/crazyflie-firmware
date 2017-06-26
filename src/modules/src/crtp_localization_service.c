@@ -77,6 +77,7 @@ static CRTPPacket pkRange;
 static uint8_t rangeIndex;
 static bool enableRangeStreamFloat = false;
 static bool isInit = false;
+static float ext_pos_std = 0.01;
 
 static void locSrvCrtpCB(CRTPPacket* pk);
 static void extPositionHandler(CRTPPacket* pk);
@@ -139,9 +140,13 @@ bool getExtPosition(state_t *state)
     ext_pos.x = crtpExtPosCache.targetVal[crtpExtPosCache.activeSide].x;
     ext_pos.y = crtpExtPosCache.targetVal[crtpExtPosCache.activeSide].y;
     ext_pos.z = crtpExtPosCache.targetVal[crtpExtPosCache.activeSide].z;
-    ext_pos.stdDev = 0.01;
+    ext_pos.stdDev = ext_pos_std;
 #ifdef ESTIMATOR_TYPE_kalman
     stateEstimatorEnqueuePosition(&ext_pos);
+#else
+    state->position.x = ext_pos.x;
+    state->position.y = ext_pos.y;
+    state->position.z = ext_pos.z;
 #endif
     return true;
   }
@@ -192,4 +197,5 @@ LOG_GROUP_STOP(ext_pos)
 
 PARAM_GROUP_START(locSrv)
 PARAM_ADD(PARAM_UINT8, enRangeStreamFP32, &enableRangeStreamFloat)
+PARAM_ADD(PARAM_FLOAT, ext_pos_std, &ext_pos_std)
 PARAM_GROUP_STOP(locSrv)
