@@ -6,7 +6,7 @@
 #include "estimator_complementary.h"
 #include "estimator_kalman.h"
 
-#define DEFAULT_ESTIMATOR ComplementaryEstimator
+#define DEFAULT_ESTIMATOR ComplementaryEstimator    // KalmanEstimator
 static StateEstimatorType currentEstimator = AnyEstimator;
 static bool isInit;
 
@@ -58,4 +58,8 @@ bool stateEstimatorTest(void) {
 
 void stateEstimator(state_t *state, sensorData_t *sensors, control_t *control, const uint32_t tick) {
   estimatorFunctions[currentEstimator].update(state, sensors, control, tick);
+}
+
+StateEstimatorType getEstimatorType() {
+    return currentEstimator;
 }

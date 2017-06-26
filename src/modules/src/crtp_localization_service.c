@@ -147,13 +147,13 @@ bool getExtPosition(state_t *state)
     ext_pos.y = crtpExtPosCache.targetVal[crtpExtPosCache.activeSide].y;
     ext_pos.z = crtpExtPosCache.targetVal[crtpExtPosCache.activeSide].z;
     ext_pos.stdDev = ext_pos_std;
-#ifndef PLATFORM_CF1
-    estimatorKalmanEnqueuePosition(&ext_pos);
-#else
-    state->position.x = ext_pos.x;
-    state->position.y = ext_pos.y;
-    state->position.z = ext_pos.z;
-#endif
+    if (getEstimatorType() == KalmanEstimator) {
+        estimatorKalmanEnqueuePosition(&ext_pos);
+    } else {
+        state->position.x = ext_pos.x;
+        state->position.y = ext_pos.y;
+        state->position.z = ext_pos.z;
+    }
 
     return true;
   }
