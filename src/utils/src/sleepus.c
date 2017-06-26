@@ -7,7 +7,7 @@
  *
  * Crazyflie control firmware
  *
- * Copyright (C) 2011-2016 Bitcraze AB
+ * Copyright (C) 2012 BitCraze AB
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,17 +21,34 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * power_distribution.h - Interface to stabilizer power distribution
+ * sleepus.h: Micro second sleep
  */
-#ifndef __POWER_DISTRIBUTION_H__
-#define __POWER_DISTRIBUTION_H__
+#include <stdint.h>
+#include <stdbool.h>
 
-#include "stabilizer_types.h"
+#include "sleepus.h"
 
-void powerDistributionInit(void);
-bool powerDistributionTest(void);
-void powerDistribution(const control_t *control);
-void powerStop();
+#include "config.h"
 
+#include "stm32f4xx.h"
 
-#endif //__POWER_DISTRIBUTION_H__
+#include "FreeRTOS.h"
+#include "task.h"
+
+#include "usec_time.h"
+
+#define TICK_PER_US (FREERTOS_MCU_CLOCK_HZ / (8 * 1e6))
+
+static bool isInit = false;
+
+void sleepus(uint32_t us)
+{
+  if (!isInit) {
+    initUsecTimer();
+    isInit = true;
+  }
+
+  uint64_t start = usecTimestamp();
+
+  while ((start+us) > usecTimestamp());
+}

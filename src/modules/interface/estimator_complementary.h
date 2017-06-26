@@ -21,17 +21,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * power_distribution.h - Interface to stabilizer power distribution
+ * estimator_complementary.h - Complementary estimator interfaced
  */
-#ifndef __POWER_DISTRIBUTION_H__
-#define __POWER_DISTRIBUTION_H__
+#ifndef __ESTIMATOR_COMPLEMENTARY_H__
+#define __ESTIMATOR_COMPLEMENTARY_H__
 
 #include "stabilizer_types.h"
 
-void powerDistributionInit(void);
-bool powerDistributionTest(void);
-void powerDistribution(const control_t *control);
-void powerStop();
+void estimatorComplementaryInit(void);
+bool estimatorComplementaryTest(void);
+void estimatorComplementary(state_t *state, sensorData_t *sensors, control_t *control, const uint32_t tick);
 
-
-#endif //__POWER_DISTRIBUTION_H__
+#endif //__ESTIMATOR_COMPLEMENTARY_H__

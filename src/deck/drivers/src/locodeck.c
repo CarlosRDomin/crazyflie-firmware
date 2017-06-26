@@ -47,6 +47,7 @@
 #include "log.h"
 #include "param.h"
 #include "nvicconf.h"
+#include "estimator.h"
 
 #include "locodeck.h"
 
@@ -75,12 +76,18 @@
 static lpsAlgoOptions_t algoOptions = {
   .tagAddress = 0xbccf000000000008,
   .anchorAddress = {
+    0xbccf000000000000,
     0xbccf000000000001,
     0xbccf000000000002,
     0xbccf000000000003,
     0xbccf000000000004,
     0xbccf000000000005,
-    0xbccf000000000006
+#if LOCODECK_NR_OF_ANCHORS > 6
+    0xbccf000000000006,
+#endif
+#if LOCODECK_NR_OF_ANCHORS > 7
+    0xbccf000000000007,
+#endif
   },
   .antennaDelay = (ANTENNA_OFFSET*499.2e6*128)/299792458.0, // In radio tick
   .rangingFailedThreshold = 6,
@@ -357,6 +364,7 @@ static const DeckDriver dwm1000_deck = {
   .name = "bcDWM1000",
 
   .usedGpio = 0,  // FIXME: set the used pins
+  .requiredEstimator = KalmanEstimator,
 
   .init = dwm1000Init,
   .test = dwm1000Test,

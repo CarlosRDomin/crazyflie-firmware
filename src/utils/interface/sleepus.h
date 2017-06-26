@@ -7,7 +7,7 @@
  *
  * Crazyflie control firmware
  *
- * Copyright (C) 2011-2016 Bitcraze AB
+ * Copyright (C) 2012 BitCraze AB
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,17 +21,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * power_distribution.h - Interface to stabilizer power distribution
+ * sleepus.h: Micro second sleep
  */
-#ifndef __POWER_DISTRIBUTION_H__
-#define __POWER_DISTRIBUTION_H__
+#ifndef __SLEEPNS_H__
+#define __SLEEPNS_H__
 
-#include "stabilizer_types.h"
+void sleepus(uint32_t ns);
 
-void powerDistributionInit(void);
-bool powerDistributionTest(void);
-void powerDistribution(const control_t *control);
-void powerStop();
-
-
-#endif //__POWER_DISTRIBUTION_H__
+#endif // __SLEEPNS_H__
