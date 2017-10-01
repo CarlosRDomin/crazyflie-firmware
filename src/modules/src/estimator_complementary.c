@@ -33,10 +33,15 @@ void estimatorComplementary(state_t *state, sensorData_t *sensorData, control_t 
                        sensorData->acc.x, sensorData->acc.y, sensorData->acc.z,
                        ATTITUDE_UPDATE_DT);
     sensfusion6GetEulerRPY(&state->attitude.roll, &state->attitude.pitch, &state->attitude.yaw);
+    sensfusion6GetAccInWorldFrame(sensorData->acc.x, sensorData->acc.y, sensorData->acc.z,
+                                  &state->acc.x, &state->acc.y, &state->acc.z);
+    /*sensorfusion6DeadReckoning(state->acc.x, state->acc.y, state->acc.z,
+                               &state->velocity.x, &state->velocity.y, &state->velocity.z,
+                               &state->position.x, &state->position.y, &state->position.z, ATTITUDE_UPDATE_DT);*/
 
-    state->acc.z = sensfusion6GetAccZWithoutGravity(sensorData->acc.x,
+    /*state->acc.z = sensfusion6GetAccZWithoutGravity(sensorData->acc.x,
                                                     sensorData->acc.y,
-                                                    sensorData->acc.z);
+                                                    sensorData->acc.z);*/
 
     positionUpdateVelocity(state->acc.z, ATTITUDE_UPDATE_DT);
   }

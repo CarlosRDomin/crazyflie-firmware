@@ -267,6 +267,17 @@ void sensfusion6GetEulerRPY(float* roll, float* pitch, float* yaw)
   *roll = atan2f(gy, gz) * 180 / M_PI_F;
 }
 
+void sensfusion6GetAccInWorldFrame(const float ax, const float ay, const float az, float* worldAx, float* worldAy, float* worldAz)
+{
+  // a_measured = a_body + g -> a_body = a_measured - g. Since we want to measure a_body in world coordinates, we need to convert a_measured
+  // from body to world coordinates (using our orientation quaternion). Note that g=(0,0,baseZacc) in world coordinates.
+
+  // Math from http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/ (quaternion to matrix, first matrix/table)
+  *worldAx = (1 - 2*q2*q2 - 2*q3*q3)*ax + (2*q1*q2 - 2*q0*q3)*ay + (2*q1*q3 + 2*q0*q2)*az - 0;
+  *worldAy = (2*q1*q2 + 2*q0*q3)*ax + (1 - 2*q1*q1 - 2*q3*q3)*ay + (2*q2*q3 - 2*q0*q1)*az - 0;
+  *worldAz = (2*q1*q3 - 2*q0*q2)*ax + (2*q2*q3 + 2*q0*q1)*ay + (1 - 2*q1*q1 - 2*q2*q2)*az + baseZacc;  // Note that this equals to: gravX*ax + gravY*ay + gravZ*z + baseZacc (baseZacc already includes the negative sign!!)
+}
+
 float sensfusion6GetAccZWithoutGravity(const float ax, const float ay, const float az)
 {
   return sensfusion6GetAccZ(ax, ay, az) - baseZacc;

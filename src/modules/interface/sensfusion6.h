@@ -32,6 +32,7 @@ bool sensfusion6Test(void);
 
 void sensfusion6UpdateQ(float gx, float gy, float gz, float ax, float ay, float az, float dt);
 void sensfusion6GetEulerRPY(float* roll, float* pitch, float* yaw);
+void sensfusion6GetAccInWorldFrame(const float ax, const float ay, const float az, float* worldAx, float* worldAy, float* worldAz);
 float sensfusion6GetAccZWithoutGravity(const float ax, const float ay, const float az);
 float sensfusion6GetInvThrustCompensationForTilt();
 

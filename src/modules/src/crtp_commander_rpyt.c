@@ -142,9 +142,11 @@ void crtpCommanderRpytDecodeSetpoint(setpoint_t *setpoint, CRTPPacket *pk)
 
   if (commanderGetActivePriority() == COMMANDER_PRIORITY_DISABLE) {
     thrustLocked = true;
+    consolePrintf("Oh no, thrust locked! :(\n");
   }
   if (values->thrust == 0) {
     thrustLocked = false;
+    consolePrintf("Trust unlocked! :)\n");
   }
 
   // Thrust
